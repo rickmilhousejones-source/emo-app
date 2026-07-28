@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <title>Emolog · 导航对比</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Noto+Sans+SC:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #1a1814;
+      --bg-elevated: #242019;
+      --surface: #2c271f;
+      --ink: #f3ebe0;
+      --ink-muted: #a89a88;
+      --accent: #c4a574;
+      --accent-soft: rgba(196, 165, 116, 0.16);
+      --user: #3d4a3a;
+      --ai: #2c271f;
+      --line: rgba(243, 235, 224, 0.08);
+      --ok: #7a9e7e;
+      --phone-w: 360px;
+      --phone-h: 720px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      min-height: 100vh;
+      font-family: "Noto Sans SC", "DM Sans", sans-serif;
+      background:
+        radial-gradient(ellipse 80% 50% at 20% 0%, #2a241c 0%, transparent 55%),
+        radial-gradient(ellipse 60% 40% at 90% 100%, #1e2a22 0%, transparent 50%),
+        var(--bg);
+      color: var(--ink);
+      padding: 24px 16px 40px;
+    }
+
+    .page-head {
+      max-width: 860px;
+      margin: 0 auto 18px;
+      display: grid;
+      gap: 8px;
+    }
+    .page-head h1 {
+      font-family: "DM Sans", "Noto Sans SC", sans-serif;
+      font-size: 1.25rem;
+      font-weight: 600;
+    }
+    .page-head p {
+      color: var(--ink-muted);
+      font-size: 0.88rem;
+      line-height: 1.55;
+      max-width: 60ch;
+    }
+
+    .mode-bar {
+      max-width: 860px;
+      margin: 0 auto 20px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .mode-bar button {
+      border: 1px solid var(--line);
+      background: var(--bg-elevated);
+      color: var(--ink);
+      border-radius: 999px;
+      padding: 8px 14px;
+      font-size: 0.82rem;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    .mode-bar button.active {
+      background: var(--accent-soft);
+      border-color: rgba(196, 165, 116, 0.5);
+      color: var(--accent);
+    }
+
+    .stage {
+      max-width: 860px;
+      margin: 0 auto;
+      display: grid;
+      gap: 24px;
+      justify-items: center;
+    }
+    @media (min-width: 820px) {
+      .stage.side {
+        grid-template-columns: 1fr 1fr;
+        align-items: start;
+      }
+    }
+
+    .phone-col {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      width: min(var(--phone-w), 100%);
+    }
+    .phone-col .label {
+      font-size: 0.78rem;
+      color: var(--ink-muted);
+      text-align: center;
+      line-height: 1.4;
+    }
+    .phone-col .label strong {
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    .phone {
+      width: 100%;
+      height: var(--phone-h);
+      max-height: 78vh;
+      background: #0f0e0c;
+      border-radius: 32px;
+      border: 1px solid rgba(243, 235, 224, 0.12);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+    .notch {
+      height: 22px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .notch::after {
+      content: "";
+      width: 88px;
+      height: 8px;
+      background: #000;
+      border-radius: 999px;
+    }
+
+    .app-bar {
+      padding: 2px 12px 10px;
+      border-bottom: 1px solid var(--line);
+      flex-shrink: 0;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 2px 6px;
+      align-items: center;
+    }
+    .app-bar.immersion {
+      grid-template-columns: auto 1fr auto;
+    }
+    .app-bar .brand {
+      font-family: "DM Sans", sans-serif;
+      font-size: 0.65rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--accent);
+    }
+    .app-bar h3 {
+      font-size: 1rem;
+      font-weight: 600;
+    }
+    .app-bar .sub {
+      font-size: 0.7rem;
+      color: var(--ink-muted);
+    }
+    .bar-actions {
+      display: flex;
+      gap: 6px;
+      grid-row: 1 / span 3;
+      align-self: center;
+    }
+    .app-bar.immersion .brand { grid-column: 2; }
+    .app-bar.immersion h3 { grid-column: 2; }
+    .app-bar.immersion .sub { grid-column: 2; }
+    .app-bar.immersion .bar-actions { grid-column: 3; grid-row: 1 / span 3; }
+    .app-bar.immersion .back-mini {
+      grid-column: 1;
+      grid-row: 1 / span 3;
+      align-self: center;
+    }
+
+    .icon-btn {
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      border: 1px solid var(--line);
+      background: var(--bg-elevated);
+      color: var(--ink-muted);
+      cursor: pointer;
+      font-size: 0.85rem;
+      font-family: inherit;
+    }
+    .icon-btn:hover, .icon-btn.on {
+      color: var(--accent);
+      border-color: rgba(196, 165, 116, 0.4);
+    }
+    .text-btn {
+      height: 34px;
+      padding: 0 11px;
+      border-radius: 10px;
+      border: 1px solid var(--line);
+      background: var(--bg-elevated);
+      color: var(--ink);
+      cursor: pointer;
+      font-size: 0.8rem;
+      font-family: inherit;
+      font-weight: 500;
+    }
+    .text-btn:hover, .text-btn.on {
+      color: var(--accent);
+      border-color: rgba(196, 165, 116, 0.45);
+      background: var(--accent-soft);
+    }
+    .back-mini {
+      border: none;
+      background: transparent;
+      color: var(--accent);
+      font-size: 0.85rem;
+      cursor: pointer;
+      font-family: inherit;
+      padding: 6px 4px;
+      display: none;
+    }
+    .back-mini.show { display: block; }
+
+    .screens { flex: 1; position: relative; overflow: hidden; min-height: 0; }
+    .screen {
+      position: absolute;
+      inset: 0;
+      display: none;
+      flex-direction: column;
+      background: linear-gradient(180deg, #141210 0%, #181612 100%);
+    }
+    .screen.active { display: flex; }
+
+    .chat {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 9px;
+      min-height: 0;
+    }
+    .bubble {
+      max-width: 88%;
+      padding: 9px 11px;
+      border-radius: 14px;
+      font-size: 0.84rem;
+      line-height: 1.45;
+    }
+    .bubble.ai {
+      align-self: flex-start;
+      background: var(--ai);
+      border: 1px solid var(--line);
+      border-bottom-left-radius: 4px;
+    }
+    .bubble.user {
+      align-self: flex-end;
+      background: var(--user);
+      border-bottom-right-radius: 4px;
+    }
+    .bubble .meta {
+      display: block;
+      font-size: 0.64rem;
+      color: var(--ink-muted);
+      margin-bottom: 3px;
+    }
+    .soft-ask { margin-top: 7px; display: flex; flex-wrap: wrap; gap: 5px; }
+    .chip {
+      border: 1px solid rgba(196, 165, 116, 0.4);
+      background: var(--accent-soft);
+      color: var(--ink);
+      border-radius: 999px;
+      padding: 4px 9px;
+      font-size: 0.72rem;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    .chip.ghost {
+      background: transparent;
+      border-color: var(--line);
+      color: var(--ink-muted);
+    }
+
+    .tools {
+      display: flex;
+      gap: 6px;
+      padding: 0 12px 8px;
+      overflow-x: auto;
+      flex-shrink: 0;
+    }
+    .tools button {
+      white-space: nowrap;
+      border: 1px solid var(--line);
+      background: var(--bg-elevated);
+      color: var(--ink-muted);
+      border-radius: 999px;
+      padding: 5px 9px;
+      font-size: 0.7rem;
+      cursor: pointer;
+      font-family: inherit;
+    }
+
+    .composer {
+      flex-shrink: 0;
+      border-top: 1px solid var(--line);
+      padding: 8px 10px 10px;
+      background: #12110f;
+      display: flex;
+      gap: 8px;
+    }
+    .composer textarea {
+      flex: 1;
+      resize: none;
+      border: 1px solid var(--line);
+      background: var(--bg-elevated);
+      color: var(--ink);
+      border-radius: 12px;
+      padding: 9px 11px;
+      font-family: inherit;
+      font-size: 0.84rem;
+      min-height: 40px;
+    }
+    .composer .send {
+      width: 40px;
+      height: 40px;
+      border: none;
+      border-radius: 11px;
+      background: var(--accent);
+      color: #1a1814;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .review {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px;
+      min-height: 0;
+    }
+    .review h4 {
+      font-size: 0.72rem;
+      color: var(--ink-muted);
+      margin-bottom: 8px;
+    }
+    .chart {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 10px;
+      margin-bottom: 14px;
+    }
+    .chart svg { width: 100%; height: 100px; display: block; }
+    .day-item {
+      width: 100%;
+      text-align: left;
+      border: 1px solid var(--line);
+      background: var(--bg-elevated);
+      color: var(--ink);
+      border-radius: 11px;
+      padding: 10px;
+      margin-bottom: 7px;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    .day-item .when { font-size: 0.68rem; color: var(--ink-muted); margin-bottom: 3px; }
+    .day-item .phrase { font-size: 0.84rem; }
+
+    .tabbar {
+      flex-shrink: 0;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      border-top: 1px solid var(--line);
+      background: #12110f;
+      padding: 5px 6px 8px;
+    }
+    .tabbar button {
+      border: none;
+      background: transparent;
+      color: var(--ink-muted);
+      padding: 9px 6px;
+      font-family: inherit;
+      cursor: pointer;
+      font-size: 0.7rem;
+      border-radius: 9px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+    }
+    .tabbar button .g { font-family: "DM Sans", sans-serif; font-weight: 600; font-size: 1rem; }
+    .tabbar button.active { color: var(--accent); background: var(--accent-soft); }
+
+    .sheet {
+      position: absolute;
+      inset: 0;
+      z-index: 20;
+      display: none;
+      background: rgba(0,0,0,0.55);
+      flex-direction: column;
+      justify-content: flex-end;
+    }
+    .sheet.open { display: flex; }
+    .sheet-panel {
+      background: #1c1915;
+      border-radius: 18px 18px 0 0;
+      border-top: 1px solid var(--line);
+      padding: 16px;
+    }
+    .sheet-panel h4 { margin-bottom: 6px; }
+    .sheet-panel p { font-size: 0.78rem; color: var(--ink-muted); margin-bottom: 12px; line-height: 1.4; }
+    .sheet-panel button {
+      width: 100%;
+      border: none;
+      border-radius: 10px;
+      padding: 11px;
+      background: var(--accent);
+      color: #1a1814;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+    }
+
+    .note {
+      max-width: 860px;
+      margin: 18px auto 0;
+      font-size: 0.82rem;
+      color: var(--ink-muted);
+      text-align: center;
+      line-height: 1.5;
+    }
+
+    .stage.single .phone-col.alt { display: none; }
+    .stage.side .phone-col { display: flex; }
+  </style>
+</head>
+<body>
+  <header class="page-head">
+    <h1>Emolog · 导航对比原型</h1>
+    <p>
+      左/方案 A：底部两 Tab「今天 · 回顾」。右/方案 B：聊天沉浸，无底栏，回顾与设置都从顶栏进。
+      可并排对比，也可只看一个。
+    </p>
+  </header>
+
+  <div class="mode-bar">
+    <button type="button" class="active" data-view="side">并排对比</button>
+    <button type="button" data-view="a">只看 A · 两 Tab</button>
+    <button type="button" data-view="b">只看 B · 沉浸</button>
+  </div>
+
+  <div class="stage side" id="stage">
+    <!-- A: two tabs -->
+    <div class="phone-col" id="colA">
+      <div class="label"><strong>A · 两 Tab</strong><br />今天 / 回顾 常驻底栏</div>
+      <div class="phone" data-shell="a">
+        <div class="notch"></div>
+        <div class="app-bar">
+          <div class="brand">Emolog</div>
+          <h3 class="title">今天</h3>
+          <div class="sub">温和朋友 · 软问开着</div>
+          <div class="bar-actions">
+            <button type="button" class="icon-btn js-settings" title="设置">⚙</button>
+          </div>
+        </div>
+        <div class="screens">
+          <section class="screen active" data-pane="today">
+            <div class="chat"></div>
+            <div class="tools">
+              <button type="button" class="js-quiet">今天别问了</button>
+              <button type="button" class="js-log">记一下</button>
+            </div>
+            <div class="composer">
+              <textarea rows="1" placeholder="说说今天…"></textarea>
+              <button class="send" type="button">↑</button>
+            </div>
+          </section>
+          <section class="screen" data-pane="review">
+            <div class="review">
+              <h4>近两周趋势</h4>
+              <div class="chart">
+                <svg viewBox="0 0 300 100">
+                  <polyline fill="none" stroke="#c4a574" stroke-width="2"
+                    points="8,60 50,45 95,70 140,35 185,48 230,30 275,50" />
+                </svg>
+              </div>
+              <h4>点某天看原话</h4>
+              <button type="button" class="day-item js-day"><div class="when">今天</div><div class="phrase">脑子一直紧绷</div></button>
+              <button type="button" class="day-item js-day"><div class="when">周五</div><div class="phrase">跟家里人闹了点别扭</div></button>
+            </div>
+          </section>
+        </div>
+        <nav class="tabbar">
+          <button type="button" class="active" data-tab="today"><span class="g">今</span>今天</button>
+          <button type="button" data-tab="review"><span class="g">顾</span>回顾</button>
+        </nav>
+        <div class="sheet">
+          <div class="sheet-panel">
+            <h4>设置</h4>
+            <p>称呼、维度、API Key、密码。</p>
+            <button type="button" class="js-close-sheet">完成</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- B: immersion -->
+    <div class="phone-col alt" id="colB">
+      <div class="label"><strong>B · 沉浸聊天（已定）</strong><br />顶栏文字「回顾」+ 齿轮</div>
+      <div class="phone" data-shell="b">
+        <div class="notch"></div>
+        <div class="app-bar immersion">
+          <button type="button" class="back-mini js-back">←</button>
+          <div class="brand">Emolog</div>
+          <h3 class="title">今天</h3>
+          <div class="sub">沉浸倾诉 · 少导航</div>
+          <div class="bar-actions">
+            <button type="button" class="text-btn js-goto-review" title="回顾">回顾</button>
+            <button type="button" class="icon-btn js-settings" title="设置">⚙</button>
+          </div>
+        </div>
+        <div class="screens">
+          <section class="screen active" data-pane="today">
+            <div class="chat"></div>
+            <div class="tools">
+              <button type="button" class="js-quiet">今天别问了</button>
+              <button type="button" class="js-log">记一下</button>
+            </div>
+            <div class="composer">
+              <textarea rows="1" placeholder="说说今天…"></textarea>
+              <button class="send" type="button">↑</button>
+            </div>
+          </section>
+          <section class="screen" data-pane="review">
+            <div class="review">
+              <h4>近两周趋势</h4>
+              <div class="chart">
+                <svg viewBox="0 0 300 100">
+                  <polyline fill="none" stroke="#c4a574" stroke-width="2"
+                    points="8,60 50,45 95,70 140,35 185,48 230,30 275,50" />
+                </svg>
+              </div>
+              <h4>点某天看原话</h4>
+              <button type="button" class="day-item js-day"><div class="when">今天</div><div class="phrase">脑子一直紧绷</div></button>
+              <button type="button" class="day-item js-day"><div class="when">周五</div><div class="phrase">跟家里人闹了点别扭</div></button>
+            </div>
+          </section>
+        </div>
+        <div class="sheet">
+          <div class="sheet-panel">
+            <h4>设置</h4>
+            <p>称呼、维度、API Key、密码。</p>
+            <button type="button" class="js-close-sheet">完成</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <p class="note">
+    摸完后：B 已选中；顶栏「回顾」改为文字按钮。若还要改返回文案或按钮位置，直接说。
+  </p>
+
+  <script>
+    function escapeHtml(s) {
+      return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+    }
+
+    function bootChat(chat) {
+      chat.innerHTML = "";
+      addBubble(chat, "ai", "晚上好。这是对比原型——发一句就能感到软问。");
+    }
+
+    function addBubble(chat, role, text, extra) {
+      const div = document.createElement("div");
+      div.className = "bubble " + role;
+      div.innerHTML =
+        '<span class="meta">' + (role === "ai" ? "AI" : "你") + "</span>" +
+        escapeHtml(text) + (extra || "");
+      chat.appendChild(div);
+      chat.scrollTop = chat.scrollHeight;
+      return div;
+    }
+
+    function softAsk(chat) {
+      const chips =
+        '<div class="soft-ask">' +
+        '<button type="button" class="chip">嗯，偏高</button>' +
+        '<button type="button" class="chip ghost">先不谈</button></div>';
+      const el = addBubble(chat, "ai", "听起来有点紧绷。要不要把焦虑记成偏高？", chips);
+      el.querySelectorAll(".chip").forEach((b) => {
+        b.addEventListener("click", () => {
+          el.querySelector(".soft-ask")?.remove();
+          addBubble(chat, "user", b.textContent);
+          addBubble(chat, "ai", b.textContent.includes("不谈") ? "好，继续聊。" : "收到，记了一笔。");
+        });
+      });
+    }
+
+    function wirePhone(phone) {
+      const chats = phone.querySelectorAll(".chat");
+      chats.forEach(bootChat);
+
+      const title = phone.querySelector(".title");
+      const sub = phone.querySelector(".sub");
+      const back = phone.querySelector(".js-back");
+      const panes = {
+        today: phone.querySelector('[data-pane="today"]'),
+        review: phone.querySelector('[data-pane="review"]')
+      };
+
+      function show(pane) {
+        Object.entries(panes).forEach(([k, el]) => {
+          if (el) el.classList.toggle("active", k === pane);
+        });
+        phone.querySelectorAll(".tabbar button").forEach((b) => {
+          b.classList.toggle("active", b.getAttribute("data-tab") === pane);
+        });
+        if (title) title.textContent = pane === "today" ? "今天" : "回顾";
+        if (sub) {
+          sub.textContent =
+            pane === "today"
+              ? (phone.getAttribute("data-shell") === "b" ? "沉浸倾诉 · 少导航" : "温和朋友 · 软问开着")
+              : "趋势 · 点进某天";
+        }
+        if (back) back.classList.toggle("show", phone.getAttribute("data-shell") === "b" && pane === "review");
+        const reviewBtn = phone.querySelector(".js-goto-review");
+        if (reviewBtn) {
+          reviewBtn.classList.toggle("on", pane === "review");
+          reviewBtn.style.visibility = pane === "review" ? "hidden" : "visible";
+        }
+      }
+
+      phone.querySelectorAll(".tabbar button").forEach((b) => {
+        b.addEventListener("click", () => show(b.getAttribute("data-tab")));
+      });
+
+      phone.querySelector(".js-goto-review")?.addEventListener("click", () => show("review"));
+      back?.addEventListener("click", () => show("today"));
+
+      phone.querySelectorAll(".composer").forEach((composer) => {
+        const ta = composer.querySelector("textarea");
+        const send = composer.querySelector(".send");
+        const chat = composer.parentElement.querySelector(".chat");
+        const go = () => {
+          const t = ta.value.trim();
+          if (!t) return;
+          ta.value = "";
+          addBubble(chat, "user", t);
+          setTimeout(() => {
+            addBubble(chat, "ai", "嗯，我听到了。");
+            setTimeout(() => softAsk(chat), 350);
+          }, 250);
+        };
+        send.addEventListener("click", go);
+        ta.addEventListener("keydown", (e) => {
+          if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault();
+            go();
+          }
+        });
+      });
+
+      phone.querySelectorAll(".js-log").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const chat = phone.querySelector(".screen.active .chat") || phone.querySelector(".chat");
+          addBubble(chat, "user", "记一下");
+          setTimeout(() => addBubble(chat, "ai", "好，轻量记一笔——今天焦虑什么感觉？"), 250);
+        });
+      });
+
+      phone.querySelectorAll(".js-quiet").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const chat = phone.querySelector(".screen.active .chat") || phone.querySelector(".chat");
+          addBubble(chat, "ai", "好。今天不再软问，纯树洞。");
+        });
+      });
+
+      phone.querySelectorAll(".js-day").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const review = btn.closest(".review");
+          review.innerHTML =
+            '<button type="button" class="chip ghost js-back-days" style="margin-bottom:10px">← 返回列表</button>' +
+            '<div class="chat" style="padding:0;overflow:visible;flex:none"></div>';
+          const c = review.querySelector(".chat");
+          addBubble(c, "user", btn.querySelector(".phrase").textContent);
+          addBubble(c, "ai", "这是当天原话回溯（演示）。");
+          review.querySelector(".js-back-days").addEventListener("click", () => {
+            location.reload();
+          });
+        });
+      });
+
+      const sheet = phone.querySelector(".sheet");
+      phone.querySelectorAll(".js-settings").forEach((b) => {
+        b.addEventListener("click", () => sheet.classList.add("open"));
+      });
+      phone.querySelector(".js-close-sheet")?.addEventListener("click", () => sheet.classList.remove("open"));
+      sheet?.addEventListener("click", (e) => {
+        if (e.target === sheet) sheet.classList.remove("open");
+      });
+    }
+
+    document.querySelectorAll(".phone").forEach(wirePhone);
+
+    const stage = document.getElementById("stage");
+    document.querySelectorAll(".mode-bar button").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll(".mode-bar button").forEach((b) => b.classList.remove("active"));
+        btn.classList.add("active");
+        const v = btn.getAttribute("data-view");
+        stage.classList.toggle("side", v === "side");
+        stage.classList.toggle("single", v !== "side");
+        document.getElementById("colA").style.display = v === "b" ? "none" : "flex";
+        document.getElementById("colB").style.display = v === "a" ? "none" : "flex";
+      });
+    });
+  </script>
+</body>
+</html>

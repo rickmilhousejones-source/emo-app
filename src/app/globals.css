@@ -1,0 +1,44 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: #1a1814;
+  --bg-elevated: #242019;
+  --surface: #2c271f;
+  --ink: #f3ebe0;
+  --ink-muted: #a89a88;
+  --accent: #c4a574;
+  --accent-soft: rgba(196, 165, 116, 0.16);
+  --user: #3d4a3a;
+  --ai: #2c271f;
+  --line: rgba(243, 235, 224, 0.08);
+  --ok: #7a9e7e;
+}
+
+body {
+  color: var(--ink);
+  background:
+    radial-gradient(ellipse 80% 50% at 20% 0%, #2a241c 0%, transparent 55%),
+    radial-gradient(ellipse 60% 40% at 90% 100%, #1e2a22 0%, transparent 50%),
+    var(--bg);
+  font-family: var(--font-noto-sans-sc), var(--font-dm-sans), sans-serif;
+  min-height: 100dvh;
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@layer utilities {
+  .screen-gradient {
+    background: linear-gradient(180deg, #141210 0%, #181612 100%);
+  }
+}

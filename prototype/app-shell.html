@@ -1,0 +1,973 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <title>Emolog · 导航壳原型</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Noto+Sans+SC:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #1a1814;
+      --bg-elevated: #242019;
+      --surface: #2c271f;
+      --ink: #f3ebe0;
+      --ink-muted: #a89a88;
+      --accent: #c4a574;
+      --accent-soft: rgba(196, 165, 116, 0.16);
+      --user: #3d4a3a;
+      --ai: #2c271f;
+      --line: rgba(243, 235, 224, 0.08);
+      --ok: #7a9e7e;
+      --phone-w: 390px;
+      --phone-h: 780px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      min-height: 100vh;
+      font-family: "Noto Sans SC", "DM Sans", sans-serif;
+      background:
+        radial-gradient(ellipse 80% 50% at 20% 0%, #2a241c 0%, transparent 55%),
+        radial-gradient(ellipse 60% 40% at 90% 100%, #1e2a22 0%, transparent 50%),
+        var(--bg);
+      color: var(--ink);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 28px 16px 48px;
+      gap: 16px;
+    }
+
+    .page-head {
+      width: min(420px, 100%);
+      display: grid;
+      gap: 8px;
+    }
+    .page-head h1 {
+      font-family: "DM Sans", "Noto Sans SC", sans-serif;
+      font-size: 1.3rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+    }
+    .page-head p {
+      color: var(--ink-muted);
+      font-size: 0.9rem;
+      line-height: 1.55;
+    }
+
+    .phone {
+      width: min(var(--phone-w), 100%);
+      height: var(--phone-h);
+      max-height: 82vh;
+      background: #0f0e0c;
+      border-radius: 36px;
+      border: 1px solid rgba(243, 235, 224, 0.12);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+    .notch {
+      height: 26px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .notch::after {
+      content: "";
+      width: 96px;
+      height: 10px;
+      background: #000;
+      border-radius: 999px;
+    }
+
+    .app-bar {
+      padding: 2px 12px 10px;
+      border-bottom: 1px solid var(--line);
+      flex-shrink: 0;
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 2px 8px;
+      align-items: center;
+    }
+    .app-bar .brand {
+      font-family: "DM Sans", sans-serif;
+      font-size: 0.68rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--accent);
+      grid-column: 2;
+    }
+    .app-bar h3 {
+      font-size: 1.05rem;
+      font-weight: 600;
+      grid-column: 2;
+    }
+    .app-bar .sub {
+      font-size: 0.72rem;
+      color: var(--ink-muted);
+      grid-column: 2;
+    }
+    .bar-back {
+      grid-column: 1;
+      grid-row: 1 / span 3;
+      align-self: center;
+      border: none;
+      background: transparent;
+      color: var(--accent);
+      font-size: 0.88rem;
+      cursor: pointer;
+      font-family: inherit;
+      padding: 6px 4px;
+      display: none;
+      white-space: nowrap;
+    }
+    .bar-back.show { display: block; }
+    .bar-actions {
+      grid-column: 3;
+      grid-row: 1 / span 3;
+      align-self: center;
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+    .text-btn {
+      height: 34px;
+      padding: 0 12px;
+      border-radius: 10px;
+      border: 1px solid var(--line);
+      background: var(--bg-elevated);
+      color: var(--ink);
+      cursor: pointer;
+      font-size: 0.82rem;
+      font-family: inherit;
+      font-weight: 500;
+    }
+    .text-btn:hover,
+    .text-btn.on {
+      color: var(--accent);
+      border-color: rgba(196, 165, 116, 0.45);
+      background: var(--accent-soft);
+    }
+    .icon-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      border: 1px solid var(--line);
+      background: var(--bg-elevated);
+      color: var(--ink-muted);
+      cursor: pointer;
+      font-size: 0.95rem;
+    }
+    .icon-btn:hover { color: var(--accent); border-color: rgba(196, 165, 116, 0.4); }
+
+    .screens {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+      min-height: 0;
+    }
+    .screen {
+      position: absolute;
+      inset: 0;
+      display: none;
+      flex-direction: column;
+      background: linear-gradient(180deg, #141210 0%, #181612 100%);
+    }
+    .screen.active { display: flex; }
+
+    /* —— Today / Chat —— */
+    .quiet-banner {
+      margin: 10px 12px 0;
+      padding: 8px 10px;
+      border-radius: 10px;
+      border: 1px solid rgba(196, 165, 116, 0.28);
+      background: var(--accent-soft);
+      font-size: 0.78rem;
+      color: var(--accent);
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .quiet-banner.on { display: flex; }
+    .quiet-banner button {
+      border: none;
+      background: transparent;
+      color: var(--ink-muted);
+      font-size: 0.72rem;
+      cursor: pointer;
+      font-family: inherit;
+      text-decoration: underline;
+    }
+
+    .chat {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      min-height: 0;
+    }
+    .bubble {
+      max-width: 88%;
+      padding: 10px 12px;
+      border-radius: 16px;
+      font-size: 0.88rem;
+      line-height: 1.5;
+      animation: rise 0.25s ease;
+    }
+    @keyframes rise {
+      from { opacity: 0; transform: translateY(5px); }
+      to { opacity: 1; transform: none; }
+    }
+    .bubble.ai {
+      align-self: flex-start;
+      background: var(--ai);
+      border: 1px solid var(--line);
+      border-bottom-left-radius: 4px;
+    }
+    .bubble.user {
+      align-self: flex-end;
+      background: var(--user);
+      border-bottom-right-radius: 4px;
+    }
+    .bubble .meta {
+      display: block;
+      font-size: 0.66rem;
+      color: var(--ink-muted);
+      margin-bottom: 4px;
+    }
+    .bubble.system {
+      align-self: center;
+      max-width: 94%;
+      background: transparent;
+      border: 1px dashed rgba(196, 165, 116, 0.3);
+      color: var(--ink-muted);
+      font-size: 0.75rem;
+      text-align: center;
+      border-radius: 10px;
+    }
+    .soft-ask {
+      margin-top: 8px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .chip {
+      border: 1px solid rgba(196, 165, 116, 0.4);
+      background: var(--accent-soft);
+      color: var(--ink);
+      border-radius: 999px;
+      padding: 5px 10px;
+      font-size: 0.76rem;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    .chip.ghost {
+      background: transparent;
+      border-color: var(--line);
+      color: var(--ink-muted);
+    }
+
+    .summary-card {
+      margin: 0 12px 8px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      font-size: 0.8rem;
+      line-height: 1.45;
+      color: var(--ink-muted);
+      display: none;
+    }
+    .summary-card.on { display: block; }
+    .summary-card strong {
+      display: block;
+      color: var(--accent);
+      font-size: 0.7rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+      font-weight: 600;
+    }
+
+    .today-tools {
+      display: flex;
+      gap: 6px;
+      padding: 0 12px 8px;
+      overflow-x: auto;
+      flex-shrink: 0;
+    }
+    .today-tools button {
+      white-space: nowrap;
+      border: 1px solid var(--line);
+      background: var(--bg-elevated);
+      color: var(--ink-muted);
+      border-radius: 999px;
+      padding: 6px 10px;
+      font-size: 0.72rem;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    .today-tools button.on {
+      color: var(--accent);
+      border-color: rgba(196, 165, 116, 0.45);
+      background: var(--accent-soft);
+    }
+
+    .quick-replies {
+      display: flex;
+      gap: 6px;
+      padding: 0 12px 8px;
+      overflow-x: auto;
+      flex-shrink: 0;
+    }
+    .quick-replies[hidden] { display: none; }
+    .quick-replies button {
+      white-space: nowrap;
+      border: 1px solid rgba(196, 165, 116, 0.4);
+      background: var(--accent-soft);
+      color: var(--ink);
+      border-radius: 999px;
+      padding: 7px 12px;
+      font-size: 0.78rem;
+      cursor: pointer;
+      font-family: inherit;
+      animation: rise 0.25s ease;
+    }
+    .quick-replies button:hover {
+      background: rgba(196, 165, 116, 0.28);
+    }
+
+    .composer {
+      flex-shrink: 0;
+      border-top: 1px solid var(--line);
+      padding: 10px 12px 12px;
+      background: #12110f;
+      display: flex;
+      gap: 8px;
+      align-items: flex-end;
+    }
+    .composer textarea {
+      flex: 1;
+      resize: none;
+      border: 1px solid var(--line);
+      background: var(--bg-elevated);
+      color: var(--ink);
+      border-radius: 14px;
+      padding: 10px 12px;
+      font-family: inherit;
+      font-size: 0.88rem;
+      min-height: 42px;
+      max-height: 90px;
+      line-height: 1.4;
+    }
+    .composer textarea:focus { outline: 1px solid rgba(196, 165, 116, 0.45); }
+    .composer .send {
+      width: 42px;
+      height: 42px;
+      border: none;
+      border-radius: 12px;
+      background: var(--accent);
+      color: #1a1814;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    /* —— Review —— */
+    .review {
+      flex: 1;
+      overflow-y: auto;
+      padding: 14px 14px 20px;
+      min-height: 0;
+    }
+    .review h4 {
+      font-size: 0.78rem;
+      color: var(--ink-muted);
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      margin-bottom: 10px;
+    }
+    .chart {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 14px 12px 10px;
+      margin-bottom: 18px;
+    }
+    .chart .legend {
+      display: flex;
+      gap: 12px;
+      font-size: 0.7rem;
+      color: var(--ink-muted);
+      margin-bottom: 10px;
+    }
+    .chart .legend span::before {
+      content: "";
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 2px;
+      margin-right: 5px;
+      vertical-align: middle;
+    }
+    .chart .legend .l-anx::before { background: var(--accent); }
+    .chart .legend .l-mood::before { background: var(--ok); }
+    .chart svg { width: 100%; height: 120px; display: block; }
+    .chart .caption {
+      font-size: 0.7rem;
+      color: var(--ink-muted);
+      margin-top: 6px;
+    }
+
+    .day-list { display: grid; gap: 8px; }
+    .day-item {
+      text-align: left;
+      width: 100%;
+      border: 1px solid var(--line);
+      background: var(--bg-elevated);
+      color: var(--ink);
+      border-radius: 12px;
+      padding: 12px;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    .day-item:hover { border-color: rgba(196, 165, 116, 0.35); }
+    .day-item .when {
+      font-size: 0.72rem;
+      color: var(--ink-muted);
+      margin-bottom: 4px;
+    }
+    .day-item .phrase {
+      font-size: 0.88rem;
+      line-height: 1.4;
+      margin-bottom: 6px;
+    }
+    .day-item .dims {
+      font-size: 0.72rem;
+      color: var(--accent);
+    }
+
+    .day-detail .back {
+      border: none;
+      background: transparent;
+      color: var(--accent);
+      font-size: 0.82rem;
+      cursor: pointer;
+      font-family: inherit;
+      margin-bottom: 10px;
+      padding: 0;
+    }
+    .day-detail .day-title {
+      font-size: 1.05rem;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+    .day-detail .day-sum {
+      font-size: 0.82rem;
+      color: var(--ink-muted);
+      line-height: 1.45;
+      margin-bottom: 14px;
+    }
+
+    /* —— Settings sheet —— */
+    .sheet {
+      position: absolute;
+      inset: 0;
+      z-index: 30;
+      display: none;
+      flex-direction: column;
+      justify-content: flex-end;
+      background: rgba(0, 0, 0, 0.55);
+    }
+    .sheet.open { display: flex; }
+    .sheet-panel {
+      background: #1c1915;
+      border-top: 1px solid var(--line);
+      border-radius: 20px 20px 0 0;
+      padding: 18px 16px 28px;
+      max-height: 78%;
+      overflow-y: auto;
+      animation: rise 0.25s ease;
+    }
+    .sheet-panel h4 {
+      font-size: 1rem;
+      margin-bottom: 4px;
+    }
+    .sheet-panel .sheet-desc {
+      font-size: 0.78rem;
+      color: var(--ink-muted);
+      margin-bottom: 14px;
+      line-height: 1.45;
+    }
+    .setting-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--line);
+      font-size: 0.88rem;
+      gap: 12px;
+    }
+    .setting-row:last-of-type { border-bottom: none; }
+    .setting-row .hint {
+      display: block;
+      font-size: 0.72rem;
+      color: var(--ink-muted);
+      margin-top: 2px;
+    }
+    .setting-row input[type="text"] {
+      width: 120px;
+      border: 1px solid var(--line);
+      background: var(--bg-elevated);
+      color: var(--ink);
+      border-radius: 8px;
+      padding: 8px 10px;
+      font-family: inherit;
+      font-size: 0.85rem;
+    }
+    .sheet-close {
+      width: 100%;
+      margin-top: 14px;
+      border: none;
+      border-radius: 10px;
+      padding: 12px;
+      background: var(--accent);
+      color: #1a1814;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+    }
+
+    .hint-out {
+      width: min(var(--phone-w), 100%);
+      font-size: 0.82rem;
+      color: var(--ink-muted);
+      line-height: 1.5;
+      text-align: center;
+      max-width: 40ch;
+    }
+  </style>
+</head>
+<body>
+  <header class="page-head">
+    <h1>Emolog · 导航壳（沉浸）</h1>
+    <p>
+      已定 B：无底栏。顶栏文字按钮「回顾」+ 齿轮设置。
+      进入回顾后左侧出现「今天」返回。
+    </p>
+  </header>
+
+  <div class="phone" id="phone">
+    <div class="notch"></div>
+
+    <div class="app-bar">
+      <button type="button" class="bar-back" id="barBack">← 今天</button>
+      <div class="brand">Emolog</div>
+      <h3 id="barTitle">今天</h3>
+      <div class="sub" id="barSub">沉浸倾诉 · 软问开着</div>
+      <div class="bar-actions">
+        <button type="button" class="text-btn" id="gotoReview">回顾</button>
+        <button class="icon-btn" id="openSettings" type="button" title="设置" aria-label="设置">⚙</button>
+      </div>
+    </div>
+
+    <div class="screens">
+      <!-- Today -->
+      <section class="screen active" id="screenToday" data-screen="today">
+        <div class="quiet-banner" id="quietBanner">
+          <span>今天别问了 · 纯树洞模式</span>
+          <button type="button" id="resumeAsk">恢复软问</button>
+        </div>
+        <div class="chat" id="chat"></div>
+        <div class="summary-card" id="summaryCard">
+          <strong>今日摘要</strong>
+          <span id="summaryText">有记录后会自动出现一句，不用你点生成。</span>
+        </div>
+        <div class="today-tools">
+          <button type="button" id="btnQuiet">今天别问了</button>
+          <button type="button" id="btnLog">记一下</button>
+        </div>
+        <div class="quick-replies" id="quickReplies" hidden></div>
+        <div class="composer">
+          <textarea id="input" rows="1" placeholder="说说今天…"></textarea>
+          <button class="send" id="send" type="button">↑</button>
+        </div>
+      </section>
+
+      <!-- Review -->
+      <section class="screen" id="screenReview" data-screen="review">
+        <div class="review" id="reviewRoot">
+          <div id="reviewHome">
+            <h4>近两周 · 静默映射（界面仍看原话）</h4>
+            <div class="chart">
+              <div class="legend">
+                <span class="l-anx">焦虑</span>
+                <span class="l-mood">心情</span>
+              </div>
+              <svg viewBox="0 0 320 120" aria-hidden="true">
+                <polyline fill="none" stroke="#c4a574" stroke-width="2"
+                  points="10,70 50,55 90,80 130,40 170,50 210,35 250,60 290,45" />
+                <polyline fill="none" stroke="#7a9e7e" stroke-width="2" stroke-dasharray="4 3"
+                  points="10,50 50,60 90,45 130,70 170,55 210,65 250,40 290,55" />
+              </svg>
+              <div class="caption">点下面某天 → 看当天原话（不是只看分数）</div>
+            </div>
+            <h4>最近几天</h4>
+            <div class="day-list" id="dayList"></div>
+          </div>
+          <div class="day-detail" id="dayDetail" hidden>
+            <button type="button" class="back" id="backReview">← 返回回顾</button>
+            <div class="day-title" id="dayTitle"></div>
+            <div class="day-sum" id="daySum"></div>
+            <div class="chat" id="dayChat" style="padding:0; overflow:visible; flex:none;"></div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <div class="sheet" id="settingsSheet">
+      <div class="sheet-panel">
+        <h4>设置</h4>
+        <p class="sheet-desc">一人用入口。称呼、维度、API Key、密码都收在这里。</p>
+        <div class="setting-row">
+          <div>
+            AI 怎么喊你
+            <span class="hint">偶尔点名</span>
+          </div>
+          <input id="nameInput" type="text" maxlength="12" placeholder="你" />
+        </div>
+        <div class="setting-row">
+          <div>
+            维度管理
+            <span class="hint">心情 · 焦虑 · 睡眠 · 咖啡因 · 亲友</span>
+          </div>
+          <span style="color:var(--ink-muted);font-size:0.8rem;">›</span>
+        </div>
+        <div class="setting-row">
+          <div>
+            API Key
+            <span class="hint">服务端保管</span>
+          </div>
+          <span style="color:var(--ink-muted);font-size:0.8rem;">›</span>
+        </div>
+        <div class="setting-row">
+          <div>
+            门锁密码
+            <span class="hint">私人网址</span>
+          </div>
+          <span style="color:var(--ink-muted);font-size:0.8rem;">›</span>
+        </div>
+        <button type="button" class="sheet-close" id="closeSettings">完成</button>
+      </div>
+    </div>
+  </div>
+
+    <p class="hint-out" id="hintOut">
+      工具条只留「今天别问了 / 记一下」。发一句后会出现咖啡因推荐回答；摘要记完自动冒出来。
+    </p>
+
+  <script>
+    const NAME_KEY = "emolog.shell.callName";
+    const days = [
+      {
+        id: "d1",
+        when: "今天 · 周日",
+        phrase: "脑子一直紧绷，焦虑偏高",
+        dims: "焦虑 · 偏高",
+        sum: "紧绷感明显，先记了焦虑；其它维度空着。",
+        msgs: [
+          { role: "ai", text: "晚上好。今天身体和心情，有哪一块比较占地方吗？" },
+          { role: "user", text: "脑子一直紧绷" },
+          { role: "ai", text: "谢谢你告诉我这些。先不用整理。" },
+          { role: "ai", text: "听起来今天紧绷感挺明显的。要不要把「焦虑」记成偏高？", soft: true }
+        ]
+      },
+      {
+        id: "d2",
+        when: "周五 · 晚",
+        phrase: "跟家里人闹了点别扭",
+        dims: "亲友看法 · 偏负（敏感，未送 AI）",
+        sum: "关系维度有波动；你标了敏感，只留在本地。",
+        msgs: [
+          { role: "user", text: "跟家里人闹了点别扭" },
+          { role: "ai", text: "听起来挺耗神的。想说细节就说，不想说停在这里也行。" },
+          { role: "user", text: "先这样吧" }
+        ]
+      },
+      {
+        id: "d3",
+        when: "周三",
+        phrase: "咖啡两杯，睡得一般",
+        dims: "咖啡因 · 两杯｜睡眠 · 一般",
+        sum: "摄入和睡眠都有留下口语记录。",
+        msgs: [
+          { role: "user", text: "今天下午两杯美式，晚上有点难睡" },
+          { role: "ai", text: "记下了：咖啡两杯，睡眠一般。需要的话明天可以再看一眼趋势。" }
+        ]
+      }
+    ];
+
+    let quiet = false;
+    let softAsked = false;
+    let tab = "today";
+
+    const chatEl = document.getElementById("chat");
+    const inputEl = document.getElementById("input");
+    const quietBanner = document.getElementById("quietBanner");
+    const btnQuiet = document.getElementById("btnQuiet");
+    const summaryCard = document.getElementById("summaryCard");
+    const barSub = document.getElementById("barSub");
+    const barTitle = document.getElementById("barTitle");
+
+    function getName() {
+      return localStorage.getItem(NAME_KEY) || "你";
+    }
+    function address() {
+      const n = getName().trim() || "你";
+      return n;
+    }
+    function greet() {
+      const n = address();
+      return n === "你"
+        ? "晚上好。今天想先倒点什么都可以——我偶尔会软问一句，不想理就略过。"
+        : "晚上好，" + n + "。今天想先倒点什么都可以——我偶尔会软问一句，不想理就略过。";
+    }
+
+    function escapeHtml(s) {
+      return String(s)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+    }
+
+    function addBubble(container, role, text, extraHtml) {
+      const div = document.createElement("div");
+      div.className = "bubble " + role;
+      if (role === "ai") {
+        div.innerHTML = '<span class="meta">AI</span>' + escapeHtml(text) + (extraHtml || "");
+      } else if (role === "user") {
+        div.innerHTML = '<span class="meta">你</span>' + escapeHtml(text);
+      } else {
+        div.textContent = text;
+      }
+      container.appendChild(div);
+      container.scrollTop = container.scrollHeight;
+      return div;
+    }
+
+    function updateQuietUI() {
+      quietBanner.classList.toggle("on", quiet);
+      btnQuiet.classList.toggle("on", quiet);
+      btnQuiet.textContent = quiet ? "已关闭软问" : "今天别问了";
+      if (tab === "today") {
+        barSub.textContent = quiet ? "纯树洞 · 今日不再软问" : "沉浸倾诉 · 软问开着";
+      }
+    }
+
+    function clearQuick() {
+      const q = document.getElementById("quickReplies");
+      q.innerHTML = "";
+      q.hidden = true;
+    }
+
+    function showQuick(options, onPick) {
+      const q = document.getElementById("quickReplies");
+      q.innerHTML = "";
+      options.forEach((label) => {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.textContent = label;
+        b.addEventListener("click", () => {
+          clearQuick();
+          onPick(label);
+        });
+        q.appendChild(b);
+      });
+      q.hidden = false;
+    }
+
+    function maybeAutoSummary() {
+      summaryCard.classList.add("on");
+      document.getElementById("summaryText").textContent =
+        address() === "你"
+          ? "今天聊到紧绷和咖啡因；口语已留下，背后映射供趋势用。"
+          : address() + " 今天主线偏紧绷；咖啡因也留了一笔。";
+    }
+
+    function showSoftAsk() {
+      if (quiet || softAsked) return;
+      softAsked = true;
+      const n = address();
+      const text =
+        n === "你"
+          ? "对了，今天咖啡喝了多少？点下面也行，打字也行。"
+          : n + "，对了，今天咖啡喝了多少？点下面也行，打字也行。";
+      addBubble(chatEl, "ai", text);
+      showQuick(["没喝", "一小杯", "两杯左右", "喝多了", "先不谈"], (label) => {
+        addBubble(chatEl, "user", label);
+        if (label === "先不谈") {
+          addBubble(chatEl, "ai", "好，那先跳过咖啡因。");
+        } else {
+          addBubble(chatEl, "ai", "收到，咖啡因记成「" + label + "」。");
+          maybeAutoSummary();
+        }
+      });
+    }
+
+    function bootChat() {
+      chatEl.innerHTML = "";
+      softAsked = false;
+      addBubble(chatEl, "ai", greet());
+    }
+
+    function send() {
+      const text = inputEl.value.trim();
+      if (!text) return;
+      inputEl.value = "";
+      addBubble(chatEl, "user", text);
+
+      if (/记一下|记一笔/.test(text)) {
+        clearQuick();
+        setTimeout(() => {
+          addBubble(chatEl, "ai", "好，轻量记一笔——今天焦虑大概什么感觉？");
+          showQuick(["挺慌的", "还好", "说不清", "够了"], (label) => {
+            addBubble(chatEl, "user", label);
+            if (label === "够了") {
+              addBubble(chatEl, "ai", "好，今天先这样。");
+            } else {
+              addBubble(chatEl, "ai", "记下了：「" + label + "」。");
+              maybeAutoSummary();
+            }
+          });
+        }, 280);
+        return;
+      }
+
+      clearQuick();
+      setTimeout(() => {
+        addBubble(chatEl, "ai", "嗯，我听到了。先不用整理成条目。");
+        if (!quiet && !softAsked) setTimeout(showSoftAsk, 400);
+      }, 280);
+    }
+
+    function switchTab(next) {
+      tab = next;
+      document.getElementById("screenToday").classList.toggle("active", next === "today");
+      document.getElementById("screenReview").classList.toggle("active", next === "review");
+      barTitle.textContent = next === "today" ? "今天" : "回顾";
+      document.getElementById("barBack").classList.toggle("show", next === "review");
+      document.getElementById("gotoReview").classList.toggle("on", next === "review");
+      document.getElementById("gotoReview").style.visibility = next === "review" ? "hidden" : "visible";
+      if (next === "review") {
+        barSub.textContent = "趋势 · 点进某天看原话";
+        showReviewHome();
+      } else {
+        updateQuietUI();
+      }
+    }
+
+    function renderDayList() {
+      const list = document.getElementById("dayList");
+      list.innerHTML = "";
+      days.forEach((d) => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "day-item";
+        btn.innerHTML =
+          '<div class="when">' + escapeHtml(d.when) + "</div>" +
+          '<div class="phrase">' + escapeHtml(d.phrase) + "</div>" +
+          '<div class="dims">' + escapeHtml(d.dims) + "</div>";
+        btn.addEventListener("click", () => openDay(d));
+        list.appendChild(btn);
+      });
+    }
+
+    function showReviewHome() {
+      document.getElementById("reviewHome").hidden = false;
+      document.getElementById("dayDetail").hidden = true;
+      renderDayList();
+    }
+
+    function openDay(d) {
+      document.getElementById("reviewHome").hidden = true;
+      document.getElementById("dayDetail").hidden = false;
+      document.getElementById("dayTitle").textContent = d.when;
+      document.getElementById("daySum").textContent = d.sum;
+      const box = document.getElementById("dayChat");
+      box.innerHTML = "";
+      d.msgs.forEach((m) => {
+        if (m.soft) {
+          const chips =
+            '<div class="soft-ask"><span class="chip ghost" style="cursor:default">当时可点可忽略</span></div>';
+          addBubble(box, m.role, m.text, chips);
+        } else {
+          addBubble(box, m.role, m.text);
+        }
+      });
+      barSub.textContent = "回溯当天对话";
+    }
+
+    document.getElementById("gotoReview").addEventListener("click", () => switchTab("review"));
+    document.getElementById("barBack").addEventListener("click", () => switchTab("today"));
+    document.getElementById("send").addEventListener("click", send);
+    inputEl.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        send();
+      }
+    });
+
+    btnQuiet.addEventListener("click", () => {
+      quiet = !quiet;
+      updateQuietUI();
+      clearQuick();
+      if (quiet) {
+        addBubble(chatEl, "system", "好。今天不再软问，也不主动追维度。想记时说「记一下」。");
+      } else {
+        softAsked = false;
+        addBubble(chatEl, "system", "软问已恢复。今天最多再偶尔问 1–2 次。");
+      }
+    });
+    document.getElementById("resumeAsk").addEventListener("click", () => {
+      quiet = false;
+      softAsked = false;
+      updateQuietUI();
+    });
+
+    document.getElementById("btnLog").addEventListener("click", () => {
+      inputEl.value = "记一下";
+      send();
+    });
+
+    document.getElementById("backReview").addEventListener("click", () => {
+      showReviewHome();
+      barSub.textContent = "趋势 · 点进某天看原话";
+    });
+
+    const sheet = document.getElementById("settingsSheet");
+    document.getElementById("openSettings").addEventListener("click", () => {
+      document.getElementById("nameInput").value = address() === "你" ? "" : address();
+      sheet.classList.add("open");
+    });
+    document.getElementById("closeSettings").addEventListener("click", () => {
+      const v = document.getElementById("nameInput").value.trim() || "你";
+      localStorage.setItem(NAME_KEY, v);
+      sheet.classList.remove("open");
+      if (tab === "today") bootChat();
+    });
+    sheet.addEventListener("click", (e) => {
+      if (e.target === sheet) sheet.classList.remove("open");
+    });
+
+    bootChat();
+    updateQuietUI();
+    renderDayList();
+  </script>
+</body>
+</html>

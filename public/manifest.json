@@ -1,0 +1,19 @@
+{
+  "name": "Emolog",
+  "short_name": "Emolog",
+  "description": "沉浸式情绪手账 · 倾诉、软问、回顾",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1a1814",
+  "theme_color": "#1a1814",
+  "lang": "zh-CN",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

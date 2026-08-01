@@ -1,6 +1,22 @@
 import { eq } from "drizzle-orm";
-import { db } from "./index";
+import { client, db } from "./index";
 import { dimensions, settings } from "./schema";
+
+async function ensurePeriodColumn() {
+  try {
+    await client.execute(
+      "ALTER TABLE dimension_entries ADD COLUMN period text",
+    );
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (!/duplicate column|already exists/i.test(msg)) {
+      // Table might not exist yet on fresh push — ignore soft failures
+      if (!/no such table/i.test(msg)) {
+        console.warn("[emolog] period column migrate:", msg);
+      }
+    }
+  }
+}
 
 export const SEED_DIMENSIONS = [
   {
@@ -49,6 +65,7 @@ let seeded = false;
 
 export async function ensureSeeded() {
   if (seeded) return;
+  await ensurePeriodColumn();
   const existing = await db.select().from(settings).where(eq(settings.id, 1));
   if (existing.length === 0) {
     await db.insert(settings).values({ id: 1 });

@@ -22,6 +22,7 @@ export async function GET(request: Request) {
       dimensionId: dimensionEntries.dimensionId,
       phrase: dimensionEntries.phrase,
       silentScore: dimensionEntries.silentScore,
+      period: dimensionEntries.period,
       createdAt: dimensionEntries.createdAt,
       dimName: dimensions.name,
     })
@@ -38,15 +39,20 @@ export async function GET(request: Request) {
 
   const summaryMap = new Map(summaries.map((s) => [s.dayKey, s.oneLiner]));
 
-  // Build day list
+  // Build day list; chart: mean of per-period scores (legacy null period = one bucket)
   const byDay = new Map<
     string,
-    { phrases: string[]; dims: string[]; scores: Record<string, number[]> }
+    {
+      phrases: string[];
+      dims: string[];
+      /** dimId -> periodKey -> score (latest wins while iterating desc) */
+      periodScores: Record<string, Record<string, number>>;
+    }
   >();
 
   for (const e of entries) {
     if (!byDay.has(e.dayKey)) {
-      byDay.set(e.dayKey, { phrases: [], dims: [], scores: {} });
+      byDay.set(e.dayKey, { phrases: [], dims: [], periodScores: {} });
     }
     const bucket = byDay.get(e.dayKey)!;
     if (bucket.phrases.length < 3) bucket.phrases.push(e.phrase);
@@ -54,8 +60,18 @@ export async function GET(request: Request) {
       bucket.dims.push(e.dimName);
     }
     if (e.silentScore != null && chartDims.includes(e.dimensionId)) {
-      if (!bucket.scores[e.dimensionId]) bucket.scores[e.dimensionId] = [];
-      bucket.scores[e.dimensionId].push(e.silentScore);
+      if (!bucket.periodScores[e.dimensionId]) {
+        bucket.periodScores[e.dimensionId] = {};
+      }
+      // desc createdAt: first write for a real period = latest
+      if (e.period) {
+        if (bucket.periodScores[e.dimensionId][e.period] == null) {
+          bucket.periodScores[e.dimensionId][e.period] = e.silentScore;
+        }
+      } else {
+        const pk = `_legacy_${String(e.createdAt)}`;
+        bucket.periodScores[e.dimensionId][pk] = e.silentScore;
+      }
     }
   }
 
@@ -71,8 +87,9 @@ export async function GET(request: Request) {
     id,
     name: id === "anxiety" ? "焦虑" : "心情",
     points: dayKeys.map((dk) => {
-      const scores = byDay.get(dk)?.scores[id];
-      if (!scores?.length) return { dayKey: dk, value: null as number | null };
+      const map = byDay.get(dk)?.periodScores[id];
+      const scores = map ? Object.values(map) : [];
+      if (!scores.length) return { dayKey: dk, value: null as number | null };
       const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
       return { dayKey: dk, value: Math.round(avg * 10) / 10 };
     }),

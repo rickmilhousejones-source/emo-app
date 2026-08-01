@@ -1,4 +1,4 @@
-import { asc, eq } from "drizzle-orm";
+import { asc, desc, eq } from "drizzle-orm";
 import { db } from "@/db";
 import {
   conversations,
@@ -15,9 +15,24 @@ import {
   type ChatMode,
 } from "@/lib/ai";
 import { CRISIS_APPENDIX, detectCrisis } from "@/lib/crisis";
-import { todayKey } from "@/lib/day";
+import { resolveDayKey, todayKey } from "@/lib/day";
+import { deletePeriodEntries, upsertPeriodEntry } from "@/lib/entries";
 import { resolveAiConfig } from "@/lib/ai-config";
-import { maybeGenerateDaySummary } from "@/lib/summary";
+import {
+  isCorrectionIntent,
+  isExtractGrounded,
+  isMetaOrEmptyLogIntent,
+  parseDimensionChip,
+  sensitiveLogChips,
+} from "@/lib/extract-guard";
+import {
+  formatLocalNowLabel,
+  parsePeriodId,
+  periodFromDate,
+  periodLabel,
+  type PeriodId,
+} from "@/lib/period";
+import { generateDaySummary } from "@/lib/summary";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -40,6 +55,18 @@ function sseEncode(event: string, data: unknown) {
   return `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
 }
 
+function resolveDimId(
+  raw: string,
+  allowedIds: Set<string>,
+  nameToId: Map<string, string>,
+): string | null {
+  let dimId = raw.trim();
+  if (!allowedIds.has(dimId)) {
+    dimId = nameToId.get(raw.trim()) || dimId;
+  }
+  return allowedIds.has(dimId) ? dimId : null;
+}
+
 export async function POST(request: Request) {
   await ensureSeeded();
   const body = (await request.json()) as {
@@ -56,7 +83,10 @@ export async function POST(request: Request) {
     });
   }
 
-  const dayKey = todayKey(body.tz);
+  const tz = body.tz || undefined;
+  const now = new Date();
+  const dayKey = todayKey(tz);
+  const currentPeriod = periodFromDate(now, tz);
   const crisis = detectCrisis(content);
   const wantsLog = body.forceLogging === true || LOG_CMD.test(content);
 
@@ -67,14 +97,30 @@ export async function POST(request: Request) {
 
   const allDims = await db.select().from(dimensions);
   const enabledDims = allDims.filter((d) => d.enabled);
-  // Sensitive dims: skip sending to AI entirely in V1
-  const aiDims = enabledDims.filter((d) => !d.sensitive);
+  const aiDims = enabledDims.filter((d) => !d.sensitive || wantsLog);
 
   let mode: ChatMode = "companion";
   if (wantsLog) {
     mode = "logging";
   } else if (!quiet && softAskCount < 2) {
     mode = "soft_ask";
+  }
+
+  const chipLog = parseDimensionChip(content, enabledDims);
+  const touchedDays = new Set<string>();
+  let wroteDirect = false;
+  if (chipLog) {
+    await upsertPeriodEntry({
+      dayKey,
+      period: currentPeriod,
+      dimensionId: chipLog.dimensionId,
+      phrase: chipLog.phrase,
+      silentScore: null,
+      source: wantsLog ? "command" : "chat",
+      viaAi: false,
+    });
+    wroteDirect = true;
+    touchedDays.add(dayKey);
   }
 
   const conv = await getOrCreateConversation(dayKey);
@@ -104,6 +150,11 @@ export async function POST(request: Request) {
       name: d.name,
       type: d.type,
     })),
+    todayKey: dayKey,
+    currentPeriod,
+    currentPeriodLabel: periodLabel(currentPeriod),
+    localNowLabel: formatLocalNowLabel(now, tz),
+    timeZone: tz || "local",
   });
 
   const llmMessages: {
@@ -131,15 +182,18 @@ export async function POST(request: Request) {
         userMessageId: userMsgId,
         mode,
         dayKey,
+        period: currentPeriod,
       });
 
       let rawAccum = "";
       try {
         if (!(await resolveAiConfig()).apiKey) {
           rawAccum = JSON.stringify({
-            reply: "还没配置 AI 密钥。点右上角齿轮填 API Key 和地址，可以先点「测试连接」。",
+            reply:
+              "还没配置 AI 密钥。点右上角齿轮填 API Key 和地址，可以先点「测试连接」。",
             quick_replies: [],
             extracts: [],
+            corrections: [],
           });
           send("delta", { text: parseAiJson(rawAccum)?.reply || rawAccum });
         } else {
@@ -166,7 +220,6 @@ export async function POST(request: Request) {
                 const piece = json.choices?.[0]?.delta?.content || "";
                 if (piece) {
                   rawAccum += piece;
-                  // Stream visible reply heuristically while JSON accumulates
                   const partial = tryPartialReply(rawAccum);
                   if (partial) send("delta", { text: partial });
                 }
@@ -183,16 +236,36 @@ export async function POST(request: Request) {
           (rawAccum.trim()
             ? rawAccum.trim()
             : "嗯，我在听。刚才那一下没接稳，你再说一句也行。");
-        const quickReplies =
+        let quickReplies =
           mode === "companion" ? [] : parsed?.quick_replies || [];
-        const extracts = mode === "companion" ? [] : parsed?.extracts || [];
+        if (mode === "logging") {
+          const extra = sensitiveLogChips(enabledDims);
+          quickReplies = [...quickReplies, ...extra]
+            .filter((v, i, arr) => arr.indexOf(v) === i)
+            .slice(0, 8);
+        }
+
+        const allowAiExtract =
+          !chipLog &&
+          !isMetaOrEmptyLogIntent(content) &&
+          !(LOG_CMD.test(content) && content.replace(LOG_CMD, "").trim() === "");
+        const extracts = allowAiExtract ? parsed?.extracts || [] : [];
+        // Corrections even when meta-ish phrasing appears alongside「别记」
+        const corrections =
+          !chipLog &&
+          (allowAiExtract || isCorrectionIntent(content))
+            ? parsed?.corrections || []
+            : [];
 
         if (crisis) {
           reply = `${reply}${CRISIS_APPENDIX}`;
         }
 
-        // If soft-ask produced a question-like reply with chips, bump quota
-        if (mode === "soft_ask" && quickReplies.length > 0) {
+        if (chipLog) {
+          reply = `好，记下了：${enabledDims.find((d) => d.id === chipLog.dimensionId)?.name || ""} · ${chipLog.phrase}`;
+        }
+
+        if (mode === "soft_ask" && quickReplies.length > 0 && !chipLog) {
           softAskCount += 1;
           await db
             .update(settings)
@@ -205,26 +278,130 @@ export async function POST(request: Request) {
         }
 
         const allowedIds = new Set(aiDims.map((d) => d.id));
-        const nameToId = new Map(enabledDims.map((d) => [d.name, d.id]));
-        let wroteExtract = false;
+        const nameToId = new Map(aiDims.map((d) => [d.name, d.id]));
+        // Corrections may target any enabled dimension
+        const allAllowed = new Set(enabledDims.map((d) => d.id));
+        const allNameToId = new Map(enabledDims.map((d) => [d.name, d.id]));
+
+        let wroteExtract = wroteDirect;
+        let appliedCorrection = false;
+
+        for (const corr of corrections) {
+          const dimId = resolveDimId(
+            corr.dimension,
+            allAllowed,
+            allNameToId,
+          );
+          const targetDay = resolveDayKey(corr.day_key, dayKey);
+          if (!dimId || !targetDay) continue;
+          const period = parsePeriodId(corr.period ?? undefined);
+
+          if (corr.action === "delete") {
+            const n = await deletePeriodEntries({
+              dayKey: targetDay,
+              dimensionId: dimId,
+              period,
+            });
+            if (n > 0) {
+              appliedCorrection = true;
+              touchedDays.add(targetDay);
+            }
+            continue;
+          }
+
+          // update
+          const phrase = (corr.phrase || "").trim().slice(0, 120);
+          if (!phrase) continue;
+          if (!period && targetDay !== dayKey) {
+            // Past day without period: skip update (same rule as extracts)
+            continue;
+          }
+          const usePeriod: PeriodId = period || currentPeriod;
+          await upsertPeriodEntry({
+            dayKey: targetDay,
+            period: usePeriod,
+            dimensionId: dimId,
+            phrase,
+            silentScore:
+              typeof corr.silent_score === "number" ? corr.silent_score : null,
+            source: "chat",
+            viaAi: true,
+          });
+          appliedCorrection = true;
+          touchedDays.add(targetDay);
+        }
+
+        const recent = await db
+          .select({
+            dimensionId: dimensionEntries.dimensionId,
+            phrase: dimensionEntries.phrase,
+            period: dimensionEntries.period,
+            dayKey: dimensionEntries.dayKey,
+          })
+          .from(dimensionEntries)
+          .where(eq(dimensionEntries.dayKey, dayKey))
+          .orderBy(desc(dimensionEntries.createdAt))
+          .limit(20);
 
         for (const ex of extracts) {
-          let dimId = ex.dimension;
-          if (!allowedIds.has(dimId)) {
-            dimId = nameToId.get(ex.dimension) || dimId;
+          const dimId = resolveDimId(ex.dimension, allowedIds, nameToId);
+          if (!dimId) continue;
+          const phrase = ex.phrase.trim().slice(0, 120);
+          if (!phrase) continue;
+          if (!isExtractGrounded(phrase, content)) continue;
+
+          const targetDay = resolveDayKey(ex.day_key, dayKey) || dayKey;
+          const explicitPeriod = parsePeriodId(ex.period ?? undefined);
+          let period: PeriodId | null = explicitPeriod;
+          if (!period) {
+            if (targetDay === dayKey) {
+              period = currentPeriod;
+            } else {
+              // Past without clear period — do not write
+              continue;
+            }
           }
-          if (!allowedIds.has(dimId)) continue;
-          await db.insert(dimensionEntries).values({
-            id: crypto.randomUUID(),
-            dayKey,
+
+          const dup = recent.some(
+            (r) =>
+              r.dayKey === targetDay &&
+              r.dimensionId === dimId &&
+              r.period === period &&
+              r.phrase.replace(/\s/g, "") === phrase.replace(/\s/g, ""),
+          );
+          if (dup) continue;
+
+          await upsertPeriodEntry({
+            dayKey: targetDay,
+            period,
             dimensionId: dimId,
-            phrase: ex.phrase.slice(0, 120),
+            phrase,
             silentScore:
               typeof ex.silent_score === "number" ? ex.silent_score : null,
-            source: wantsLog ? "command" : mode === "soft_ask" ? "soft_ask" : "chat",
+            source: wantsLog
+              ? "command"
+              : mode === "soft_ask"
+                ? "soft_ask"
+                : "chat",
             viaAi: true,
           });
           wroteExtract = true;
+          touchedDays.add(targetDay);
+          recent.unshift({
+            dimensionId: dimId,
+            phrase,
+            period,
+            dayKey: targetDay,
+          });
+        }
+
+        // If model claimed a fix but nothing applied, soften lying claims
+        if (
+          !appliedCorrection &&
+          /已(改|删|更正|去掉|移除)|帮你改|已经改/.test(reply) &&
+          /(别记|不要记|删掉|改成|记错)/.test(content)
+        ) {
+          reply = `${reply.replace(/已(改|删|更正|去掉|移除)[了啦吧]?/g, "我先记下你的意思")}（刚才没能改到账本，你再说一下要改哪一天哪一段，或去回顾页手动编辑。）`;
         }
 
         const assistantId = crypto.randomUUID();
@@ -236,8 +413,12 @@ export async function POST(request: Request) {
           content: reply,
         });
 
-        if (wroteExtract) {
-          void maybeGenerateDaySummary(dayKey).catch(() => undefined);
+        if (touchedDays.size > 0) {
+          await Promise.all(
+            [...touchedDays].map((dk) =>
+              generateDaySummary(dk, { force: true }).catch(() => undefined),
+            ),
+          );
         }
 
         send("final", {
@@ -245,6 +426,7 @@ export async function POST(request: Request) {
           reply,
           quick_replies: quickReplies,
           extracts: wroteExtract ? extracts : [],
+          corrections: appliedCorrection ? corrections : [],
           mode,
           softAskCount,
         });
@@ -275,7 +457,6 @@ function tryPartialReply(raw: string): string | null {
       return m[1];
     }
   }
-  // If it looks like plain text (no JSON yet), stream as-is carefully
   if (!raw.includes("{") && raw.length > 2) return raw;
   return null;
 }

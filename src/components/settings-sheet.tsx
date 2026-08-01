@@ -142,7 +142,18 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
         setMsgBad(true);
         return;
       }
-      setMsg(`${json.message || "连接成功"}（模型 ${json.model || aiModel}）`);
+      // 测试只带临时 Key，聊天读的是库里的配置——成功后自动保存
+      const patch: Record<string, unknown> = {
+        aiBaseUrl,
+        aiModel,
+      };
+      if (aiApiKey.trim()) {
+        patch.aiApiKey = aiApiKey.trim();
+      }
+      await save(patch);
+      setMsg(
+        `${json.message || "连接成功"}（模型 ${json.model || aiModel}），已保存`,
+      );
       setMsgBad(false);
     } catch {
       setMsg("网络错误，测不通");
@@ -234,7 +245,7 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
           <p className="mb-2 text-[0.72rem] text-ink-muted">
             {data?.aiConfigured
               ? `已配置 · ${data.aiKeyMasked || "••••"}${data.aiKeyFromEnv ? "（来自环境变量）" : ""}`
-              : "还没配密钥"}
+              : "还没配密钥 · 填好后点「测试连接」会自动保存"}
           </p>
 
           <label className="mb-2 block text-[0.75rem] text-ink-muted">
@@ -255,6 +266,10 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
               placeholder="deepseek-chat"
               className="mt-1 w-full rounded-[10px] border border-line bg-bg-elevated px-3 py-2 text-[0.85rem] text-ink outline-none focus:border-accent/45"
             />
+            <span className="mt-1 block text-[0.7rem] leading-snug text-ink-muted/80">
+              中文闲聊可优先试 DeepSeek（deepseek-chat）或通义 Qwen；GPT
+              有时偏书面生硬。
+            </span>
           </label>
 
           <label className="mb-2 block text-[0.75rem] text-ink-muted">

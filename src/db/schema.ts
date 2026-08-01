@@ -52,13 +52,15 @@ export const messages = sqliteTable("messages", {
 export const dimensionEntries = sqliteTable("dimension_entries", {
   id: text("id").primaryKey(),
   dayKey: text("day_key").notNull(),
+  /** null = legacy whole-day entry; new writes use morning|forenoon|noon|afternoon|evening|night */
+  period: text("period"),
   dimensionId: text("dimension_id")
     .notNull()
     .references(() => dimensions.id),
   phrase: text("phrase").notNull(),
   silentScore: real("silent_score"),
   source: text("source", {
-    enum: ["soft_ask", "command", "chat"],
+    enum: ["soft_ask", "command", "chat", "edit"],
   }).notNull(),
   viaAi: integer("via_ai", { mode: "boolean" }).notNull().default(true),
   createdAt: integer("created_at", { mode: "timestamp_ms" })
